@@ -18,7 +18,8 @@ module.exports = Bookshelf.model('User', Bookshelf.Model.extend({
         friend_code_3ds: this.get('friend_code_3ds'),
         friend_code_switch: this.get('friend_code_switch'),
         date_created: this.get('date_created'),
-        date_modified: this.get('date_modified')
+        date_modified: this.get('date_modified'),
+        language: this.get('language')
       };
     }
   },
@@ -33,7 +34,8 @@ module.exports = Bookshelf.model('User', Bookshelf.Model.extend({
         dexes,
         donated: Boolean(this.get('stripe_id')),
         date_created: this.get('date_created'),
-        date_modified: this.get('date_modified')
+        date_modified: this.get('date_modified'),
+        language: this.get('language')
       };
     });
   }
