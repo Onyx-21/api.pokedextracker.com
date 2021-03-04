@@ -21,5 +21,6 @@ module.exports = Joi.object().keys({
   title: Joi.string().max(300).trim().required(),
   shiny: Joi.boolean().required(),
   game: Joi.string().max(50).trim().required(),
-  regional: Joi.boolean().required()
+  regional: Joi.boolean().required(),
+  language: Joi.string().min(2).max(2).required().default('en')
 });

@@ -49,7 +49,8 @@ exports.create = function (payload, request) {
         friend_code_3ds: payload.friend_code_3ds,
         friend_code_switch: payload.friend_code_switch,
         referrer: payload.referrer,
-        last_ip: ip
+        last_ip: ip,
+        language: payload.language
       }, { transacting })
       .tap((user) => {
         return new Dex().save({

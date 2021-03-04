@@ -16,5 +16,5 @@ module.exports = Joi.object().keys({
         string: { regex: { base: 'must be a valid Switch friend code' } }
       }
     }),
-  language: Joi.string().min(2).max(2).empty(['', null]).default('en'),
+  language: Joi.string().min(2).max(2).required().default('en'),
 });
