@@ -1,15 +1,15 @@
 'use strict';
 
 const Bluebird = require('bluebird');
-const Bcrypt   = require('bcrypt');
-const Slug     = require('slug');
+const Bcrypt = require('bcrypt');
+const Slug = require('slug');
 
 const Config = require('../../../../config');
-const Dex    = require('../../../models/dex');
+const Dex = require('../../../models/dex');
 const Errors = require('../../../libraries/errors');
-const JWT    = require('../../../libraries/jwt');
-const Knex   = require('../../../libraries/knex');
-const User   = require('../../../models/user');
+const JWT = require('../../../libraries/jwt');
+const Knex = require('../../../libraries/knex');
+const User = require('../../../models/user');
 
 exports.list = function (query) {
   return new User().query((qb) => {
@@ -17,72 +17,76 @@ exports.list = function (query) {
     qb.limit(query.limit);
     qb.offset(query.offset);
   })
-  .fetchAll({ withRelated: User.RELATED });
+    .fetchAll({ withRelated: User.RELATED });
 };
 
 exports.retrieve = function (username) {
   return new User().where('username', username).fetch({ require: true, withRelated: User.RELATED })
-  .catch(User.NotFoundError, () => {
-    throw new Errors.NotFound('user');
-  });
+    .catch(User.NotFoundError, () => {
+      throw new Errors.NotFound('user');
+    });
 };
 
 exports.create = function (payload, request) {
   return Bluebird.resolve(Bcrypt.hash(payload.password, Config.SALT_ROUNDS))
-  .then((hash) => {
-    payload.password = hash;
+    .then((hash) => {
+      payload.password = hash;
 
-    return new User().where('username', payload.username).fetch();
-  })
-  .then((existing) => {
-    if (existing) {
-      throw new Errors.ExistingUsername();
-    }
+      return new User().where('username', payload.username).fetch();
+    })
+    .then((existing) => {
+      if (existing) {
+        throw new Errors.ExistingUsername();
+      }
 
-    const xff = request.headers['x-forwarded-for'];
-    const ip = xff ? xff.split(',')[0].trim() : request.info.remoteAddress;
+      const xff = request.headers['x-forwarded-for'];
+      const ip = xff ? xff.split(',')[0].trim() : request.info.remoteAddress;
 
-    return Knex.transaction((transacting) => {
-      return new User().save({
-        username: payload.username,
-        password: payload.password,
-        friend_code_3ds: payload.friend_code_3ds,
-        friend_code_switch: payload.friend_code_switch,
-        referrer: payload.referrer,
-        last_ip: ip,
-        language: payload.language
-      }, { transacting })
-      .tap((user) => {
-        return new Dex().save({
-          user_id: user.id,
-          title: payload.title,
-          slug: Slug(payload.title, { lower: true }),
-          shiny: payload.shiny,
-          game_id: payload.game,
-          regional: payload.regional
-        }, { transacting });
+      return Knex.transaction((transacting) => {
+        return new User().save({
+          username: payload.username,
+          password: payload.password,
+          friend_code_3ds: payload.friend_code_3ds,
+          friend_code_switch: payload.friend_code_switch,
+          referrer: payload.referrer,
+          last_ip: ip,
+          language: payload.language
+        }, { transacting })
+          .tap((user) => {
+            return new Dex().save({
+              user_id: user.id,
+              title: payload.title,
+              slug: Slug(payload.title, { lower: true }),
+              shiny: payload.shiny,
+              game_id: payload.game,
+              regional: payload.regional
+            }, { transacting });
+          });
       });
+    })
+    .then((user) => user.refresh({ withRelated: User.RELATED }))
+    .then((user) => JWT.sign(user))
+    .catch(Errors.DuplicateKey, () => {
+      throw new Errors.ExistingUsername();
     });
-  })
-  .then((user) => user.refresh({ withRelated: User.RELATED }))
-  .then((user) => JWT.sign(user))
-  .catch(Errors.DuplicateKey, () => {
-    throw new Errors.ExistingUsername();
-  });
 };
 
 exports.update = function (username, payload, auth) {
   return Bluebird.resolve()
-  .then(() => {
-    if (payload.password) {
-      return Bcrypt.hash(payload.password, Config.SALT_ROUNDS)
-      .then((hash) => payload.password = hash);
-    }
-  })
-  .then(() => new User({ id: auth.id }).where('username', username).save(payload))
-  .then((user) => user.refresh({ withRelated: User.RELATED }))
-  .then((user) => JWT.sign(user))
-  .catch(User.NoRowsUpdatedError, () => {
-    throw new Errors.ForbiddenAction('updating this user');
-  });
+    .then(() => {
+      if (payload.password) {
+        return Bcrypt.hash(payload.password, Config.SALT_ROUNDS)
+          .then((hash) => payload.password = hash);
+      }
+    })
+    .then(() => new User({ id: auth.id }).where('username', username).save(payload))
+    .then((user) => user.refresh({ withRelated: User.RELATED }))
+    .then((user) => JWT.sign(user))
+    .catch(User.NoRowsUpdatedError, () => {
+      throw new Errors.ForbiddenAction('updating this user');
+    });
 };
+
+exports.delete = function (username, auth) {
+  return new User({ id: auth.id }).where('username', username).destroy();
+}

@@ -35,6 +35,13 @@ exports.register = (server, options, next) => {
       handler: (request, reply) => reply(Controller.update(request.params.id, request.payload, request.auth.credentials)),
       validate: { payload: UsersUpdateValidator }
     }
+  }, {
+    method: 'DELETE',
+    path: '/users/{id}',
+    config: {
+      auth: 'token',
+      handler: (request, reply) => reply(Controller.delete(request.params.id, request.auth.credentials))
+    }
   }]);
 
   next();
