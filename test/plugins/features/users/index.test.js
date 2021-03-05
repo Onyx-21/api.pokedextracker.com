@@ -148,4 +148,26 @@ describe('users integration', () => {
 
   });
 
+  describe('delete', () => {
+
+    const auth = `Bearer ${JWT.sign(firstUser, Config.JWT_SECRET)}`;
+
+    beforeEach(() => {
+      return Knex('users').insert(firstUser);
+    });
+
+    it('deletes a user', () => {
+      return Server.inject({
+        method: 'DELETE',
+        url: `/users/${firstUser.username}`,
+        headers: { authorization: auth },
+        payload: { username: firstUser.username }
+      })
+      .then((res) => {
+        expect(res.statusCode).to.eql(200);
+      });
+    });
+
+  });
+
 });
