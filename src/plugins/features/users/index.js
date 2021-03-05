@@ -37,10 +37,10 @@ exports.register = (server, options, next) => {
     }
   }, {
     method: 'DELETE',
-    path: '/users/{id}',
+    path: '/users/{username}',
     config: {
       auth: 'token',
-      handler: (request, reply) => reply(Controller.delete(request.params.id, request.auth.credentials))
+      handler: (request, reply) => reply(Controller.delete(request.params.username, request.auth.credentials))
     }
   }]);
 

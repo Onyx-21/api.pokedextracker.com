@@ -88,5 +88,14 @@ exports.update = function (username, payload, auth) {
 };
 
 exports.delete = function (username, auth) {
-  return new User({ id: auth.id }).where('username', username).destroy();
+  return Bluebird.resolve()
+    .then(() => {
+      return Knex.transaction((transacting) => {
+        return new User({ id: auth.id }).where('username', username).destroy({ require: true, transacting });
+      });
+    })
+    .then(() => ({ deleted: true }))
+    .catch(User.NoRowsDeletedError, () => {
+      throw new Errors.ForbiddenAction('deleting this user');
+    });
 }
